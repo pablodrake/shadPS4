@@ -46,6 +46,15 @@ void GameGridFrame::onCurrentCellChanged(int currentRow, int currentColumn, int 
         return;
     }
 
+    // Check if the cell is enabled/valid
+    QTableWidgetItem* item = this->item(currentRow, currentColumn);
+    if (!item || !(item->flags() & Qt::ItemIsEnabled)) {
+        cellClicked = false;
+        validCellSelected = false;
+        BackgroundMusicPlayer::getInstance().stopMusic();
+        return;
+    }
+
     crtRow = currentRow;
     crtColumn = currentColumn;
     columnCnt = this->columnCount();
@@ -104,6 +113,16 @@ void GameGridFrame::PopulateGameGrid(QVector<GameInfo> m_games_search, bool from
     int column = 0;
     this->setColumnCount(gamesPerRow);
     this->setRowCount(rowCount);
+
+    // First create all cells as disabled
+    for (int r = 0; r < rowCount; r++) {
+        for (int c = 0; c < gamesPerRow; c++) {
+            QTableWidgetItem* item = new QTableWidgetItem();
+            item->setFlags(item->flags() & ~Qt::ItemIsEnabled & ~Qt::ItemIsSelectable);
+            this->setItem(r, c, item);
+        }
+    }
+
     for (int i = 0; i < m_games_.size(); i++) {
         QWidget* widget = new QWidget();
         QVBoxLayout* layout = new QVBoxLayout();
@@ -136,6 +155,11 @@ void GameGridFrame::PopulateGameGrid(QVector<GameInfo> m_games_search, bool from
                                        "padding: 2px;"
                                        "font-size: 12px; }");
         widget->setStyleSheet(tooltipStyle);
+
+        // Enable the cell that will contain a game
+        QTableWidgetItem* item = new QTableWidgetItem();
+        item->setFlags(item->flags() | Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+        this->setItem(row, column, item);
         this->setCellWidget(row, column, widget);
 
         column++;
