@@ -103,76 +103,70 @@ void GameGridFrame::PopulateGameGrid(QVector<GameInfo> m_games_search, bool from
     icon_size = Config::getIconSizeGrid(); // update icon size for resize event.
 
     int gamesPerRow = windowWidth / (icon_size + 20); // 2 x cell widget border size.
-    int row = 0;
-    int gameCounter = 0;
     int rowCount = m_games_.size() / gamesPerRow;
     if (m_games_.size() % gamesPerRow != 0) {
         rowCount += 1; // Add an extra row for the remainder
     }
 
-    int column = 0;
     this->setColumnCount(gamesPerRow);
     this->setRowCount(rowCount);
 
-    // First create all cells as disabled
-    for (int r = 0; r < rowCount; r++) {
-        for (int c = 0; c < gamesPerRow; c++) {
-            QTableWidgetItem* item = new QTableWidgetItem();
-            item->setFlags(item->flags() & ~Qt::ItemIsEnabled & ~Qt::ItemIsSelectable);
-            this->setItem(r, c, item);
-        }
-    }
+    int row = 0;
+    int column = 0;
 
-    for (int i = 0; i < m_games_.size(); i++) {
-        QWidget* widget = new QWidget();
-        QVBoxLayout* layout = new QVBoxLayout();
-        QLabel* image_label = new QLabel();
-        QImage icon = m_games_[gameCounter].icon.scaled(
-            QSize(icon_size, icon_size), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        image_label->setFixedSize(icon.width(), icon.height());
-        image_label->setPixmap(QPixmap::fromImage(icon));
-        QLabel* name_label = new QLabel(QString::fromStdString(m_games_[gameCounter].serial));
-        name_label->setAlignment(Qt::AlignHCenter);
-        layout->addWidget(image_label);
-        layout->addWidget(name_label);
-
-        name_label->setStyleSheet("color: white; font-size: 12px; font-weight: bold;");
-        QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect();
-        shadowEffect->setBlurRadius(5);               // Set the blur radius of the shadow
-        shadowEffect->setColor(QColor(0, 0, 0, 160)); // Set the color and opacity of the shadow
-        shadowEffect->setOffset(2, 2);                // Set the offset of the shadow
-
-        name_label->setGraphicsEffect(shadowEffect);
-        widget->setLayout(layout);
-        QString tooltipText = QString::fromStdString(m_games_[gameCounter].name + " (" +
-                                                     m_games_[gameCounter].version + ", " +
-                                                     m_games_[gameCounter].region + ")");
-        widget->setToolTip(tooltipText);
-        QString tooltipStyle = QString("QToolTip {"
-                                       "background-color: #ffffff;"
-                                       "color: #000000;"
-                                       "border: 1px solid #000000;"
-                                       "padding: 2px;"
-                                       "font-size: 12px; }");
-        widget->setStyleSheet(tooltipStyle);
-
-        // Enable the cell that will contain a game
+    // Create and populate cells in a single pass
+    for (int i = 0; i < rowCount * gamesPerRow; i++) {
         QTableWidgetItem* item = new QTableWidgetItem();
-        item->setFlags(item->flags() | Qt::ItemIsEnabled | Qt::ItemIsSelectable);
-        this->setItem(row, column, item);
-        this->setCellWidget(row, column, widget);
+
+        if (i < m_games_.size()) {
+            // This is a valid game cell
+            QWidget* widget = new QWidget();
+            QVBoxLayout* layout = new QVBoxLayout();
+            QLabel* image_label = new QLabel();
+            QImage icon = m_games_[i].icon.scaled(QSize(icon_size, icon_size),
+                                                  Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+            image_label->setFixedSize(icon.width(), icon.height());
+            image_label->setPixmap(QPixmap::fromImage(icon));
+            QLabel* name_label = new QLabel(QString::fromStdString(m_games_[i].serial));
+            name_label->setAlignment(Qt::AlignHCenter);
+            layout->addWidget(image_label);
+            layout->addWidget(name_label);
+
+            name_label->setStyleSheet("color: white; font-size: 12px; font-weight: bold;");
+            QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect();
+            shadowEffect->setBlurRadius(5);
+            shadowEffect->setColor(QColor(0, 0, 0, 160));
+            shadowEffect->setOffset(2, 2);
+
+            name_label->setGraphicsEffect(shadowEffect);
+            widget->setLayout(layout);
+            QString tooltipText = QString::fromStdString(
+                m_games_[i].name + " (" + m_games_[i].version + ", " + m_games_[i].region + ")");
+            widget->setToolTip(tooltipText);
+            QString tooltipStyle = QString("QToolTip {"
+                                           "background-color: #ffffff;"
+                                           "color: #000000;"
+                                           "border: 1px solid #000000;"
+                                           "padding: 2px;"
+                                           "font-size: 12px; }");
+            widget->setStyleSheet(tooltipStyle);
+
+            item->setFlags(item->flags() | Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+            this->setItem(row, column, item);
+            this->setCellWidget(row, column, widget);
+        } else {
+            // This is an empty cell
+            item->setFlags(item->flags() & ~Qt::ItemIsEnabled & ~Qt::ItemIsSelectable);
+            this->setItem(row, column, item);
+        }
 
         column++;
         if (column == gamesPerRow) {
             column = 0;
             row++;
         }
-
-        gameCounter++;
-        if (gameCounter >= m_games_.size()) {
-            break;
-        }
     }
+
     m_games_.clear();
     this->resizeRowsToContents();
     this->resizeColumnsToContents();
